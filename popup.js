@@ -1,39 +1,65 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const activateBtn = document.getElementById('activateBtn');
-    const statusSpan = document.getElementById('status');
+// Popup script that handles the extension's settings UI
+
+// DOM elements
+const languageSelect = document.getElementById("language");
+const autoCapitalizeCheckbox = document.getElementById("autoCapitalize");
+const punctuationEnabledCheckbox = document.getElementById("punctuationEnabled");
+const saveSettingsButton = document.getElementById("saveSettings");
+const startDictationButton = document.getElementById("startDictation");
+const statusDiv = document.getElementById("status");
+
+// Load saved settings when popup opens
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.storage.sync.get(
+    ["language", "autoCapitalize", "punctuationEnabled"],
+    (result) => {
+      languageSelect.value = result.language || "en-US";
+      autoCapitalizeCheckbox.checked = result.autoCapitalize !== false;
+      punctuationEnabledCheckbox.checked = result.punctuationEnabled !== false;
+    }
+  );
+});
+
+// Save settings
+saveSettingsButton.addEventListener("click", () => {
+  const settings = {
+    language: languageSelect.value,
+    autoCapitalize: autoCapitalizeCheckbox.checked,
+    punctuationEnabled: punctuationEnabledCheckbox.checked
+  };
+  
+  chrome.storage.sync.set(settings, () => {
+    statusDiv.textContent = "Settings saved!";
+    statusDiv.className = "status success";
     
-    // Check if the extension is already active
-    chrome.storage.local.get(['isActive'], function(result) {
-      if (result.isActive) {
-        statusSpan.textContent = 'Active';
-        statusSpan.style.color = 'green';
-        activateBtn.textContent = 'Disable in Gmail';
-      }
-    });
-    
-    // Toggle activation when button is clicked
-    activateBtn.addEventListener('click', function() {
-      chrome.storage.local.get(['isActive'], function(result) {
-        const newState = !result.isActive;
-        
-        // Update storage
-        chrome.storage.local.set({isActive: newState}, function() {
-          // Update UI
-          if (newState) {
-            statusSpan.textContent = 'Active';
-            statusSpan.style.color = 'green';
-            activateBtn.textContent = 'Disable in Gmail';
-          } else {
-            statusSpan.textContent = 'Not active';
-            statusSpan.style.color = 'black';
-            activateBtn.textContent = 'Enable in Gmail';
-          }
-          
-          // Send message to content script
-          chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, {action: 'toggleDictation', isActive: newState});
-          });
-        });
-      });
-    });
+    // Hide status message after 2 seconds
+    setTimeout(() => {
+      statusDiv.textContent = "";
+      statusDiv.className = "status";
+    }, 2000);
   });
+});
+
+// Start dictation
+startDictationButton.addEventListener("click", () => {
+  // Save settings first
+  saveSettingsButton.click();
+  
+  // Check if browser supports Web Speech API
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    statusDiv.textContent = "Your browser doesn't support speech recognition. Please use Chrome or Edge.";
+    statusDiv.className = "status error";
+    return;
+  }
+  
+  // Send message to start dictation
+  chrome.runtime.sendMessage({ action: "startDictation" }, (response) => {
+    statusDiv.textContent = "Dictation started in Gmail tab";
+    statusDiv.className = "status success";
+    
+    // Close popup after a short delay
+    setTimeout(() => {
+      window.close();
+    }, 1500);
+  });
+});
