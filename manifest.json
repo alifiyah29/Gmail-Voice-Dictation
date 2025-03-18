@@ -2,30 +2,26 @@
   "manifest_version": 3,
   "name": "Gmail Voice Dictation",
   "version": "1.0",
-  "description": "Voice dictation for Gmail using browser's built-in speech recognition",
-  "permissions": ["activeTab", "storage", "scripting"],
-  "host_permissions": ["https://mail.google.com/*"],
+  "description": "Voice dictation for Gmail with proper noun recognition",
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
     }
-  },
-  "background": {
-    "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://mail.google.com/*"],
+      "matches": ["*://mail.google.com/*"],
       "js": ["content.js"],
       "css": ["styles.css"]
     }
   ],
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
   }
 }
