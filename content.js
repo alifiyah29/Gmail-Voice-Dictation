@@ -5,10 +5,8 @@ window.addEventListener("load", initializeExtension);
 function initializeExtension() {
   console.log("Gmail Voice Dictation: Extension initialized");
 
-  // Initial check for compose areas
   checkForComposeAreas();
 
-  // Set up a mutation observer to detect when new compose areas appear
   const observer = new MutationObserver(() => {
     checkForComposeAreas();
   });
@@ -101,7 +99,8 @@ function addDictationButtons(composeArea) {
     let transcript = event.results[resultIndex][0].transcript;
 
     if (event.results[resultIndex].isFinal) {
-      transcript = processPunctuation(transcript);
+      transcript = processTextEnhancements(transcript);
+      console.log("Processed Transcript:", transcript);
       insertTextIntoComposeArea(composeArea, transcript);
       currentInterimResult = "";
     } else {
@@ -131,8 +130,9 @@ function addDictationButtons(composeArea) {
   });
 }
 
-// Process punctuation commands
-function processPunctuation(transcript) {
+// Process punctuation, capitalization, and proper noun highlighting
+function processTextEnhancements(transcript) {
+  console.log("Original Transcript:", transcript);
   transcript = transcript
     .replace(/\b(period|full stop)\b/gi, ".")
     .replace(/\bcomma\b/gi, ",")
@@ -140,20 +140,25 @@ function processPunctuation(transcript) {
     .replace(/\bexclamation (mark|point)\b/gi, "!")
     .replace(/\bcolon\b/gi, ":")
     .replace(/\b(new line|newline)\b/gi, "\n")
-    .replace(/\bnew paragraph\b/gi, "\n\n");
+    .replace(/\bnew paragraph\b/gi, "\n\n")
+    .replace(/\b(bullet point|list item)\b/gi, "• "); // Add bullet point for "bullet point" or "list item";
 
-  transcript = transcript.replace(/\b(Mr|Mrs|Dr|Ms)\s/gi, "$1.");
-
+  // Remove any spaces before punctuation marks
   transcript = transcript.replace(/\s([.,!?;:])/g, "$1");
 
-  // Ensure new lines start with a capital letter
-  transcript = transcript.replace(
-    /(\n+)([a-z])/g,
-    (match, p1, p2) => p1 + p2.toUpperCase()
+  // Add a space after punctuation marks if it doesn't exist
+  transcript = transcript.replace(/([.,!?;:])([^ ])/g, "$1 $2");
+
+  // Capitalize the first word of the entire text
+  transcript = transcript.replace(/^(?:\s|\n)*([a-z])/g, (match, p1) =>
+    p1.toUpperCase()
   );
 
-  // Ensure a period is not added if punctuation is already present in the previous line
-  transcript = transcript.replace(/([.!?])\s*\n/g, "$1\n");
+  // Capitalize the first word after each new line or punctuation mark
+  transcript = transcript.replace(
+    /([.!?,:]\s*)([a-z])/g,
+    (match, p1, p2) => p1 + p2.toUpperCase()
+  );
 
   return transcript;
 }
@@ -162,10 +167,10 @@ function processPunctuation(transcript) {
 function insertTextIntoComposeArea(composeArea, text) {
   try {
     if (text.trim().toLowerCase() === "backspace") {
-      let currentText = composeArea.innerText || composeArea.textContent;
+      let currentText = composeArea.innerHTML;
       let words = currentText.trim().split(" ");
       words.pop();
-      composeArea.innerText = words.join(" ") + " ";
+      composeArea.innerHTML = words.join(" ") + " ";
       return;
     }
 
