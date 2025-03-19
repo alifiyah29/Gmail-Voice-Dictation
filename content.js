@@ -132,6 +132,58 @@ function addDictationButtons(composeArea) {
 
 // Process punctuation, capitalization, and proper noun highlighting
 function processTextEnhancements(transcript) {
+  try {
+    // If the transcribed text is "backspace"
+    if (text.trim().toLowerCase() === "backspace") {
+      let currentText = composeArea.innerHTML;
+      let words = currentText.trim().split(" ");
+
+      // If there are words to delete
+      if (words.length > 1) {
+        words.pop(); // Remove the last word
+        composeArea.innerHTML = words.join(" ") + " ";
+
+        // Now, move the cursor to the end of the last word
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+
+        // Create a new span element with the updated content
+        const tempElement = document.createElement("span");
+        tempElement.innerHTML = composeArea.innerHTML;
+
+        // Ensure the range is positioned at the end of the last word
+        const newRange = document.createRange();
+        const lastChild = tempElement.lastChild;
+        newRange.setStart(lastChild, lastChild.length);
+        newRange.setEnd(lastChild, lastChild.length);
+
+        // Update the selection with the new range
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+    } else {
+      // Process regular text insertion
+      text = text.replace(/\n/g, "<br>");
+
+      const selection = window.getSelection();
+      const range = selection.getRangeAt(0);
+
+      const tempElement = document.createElement("span");
+      tempElement.innerHTML = text;
+
+      range.deleteContents();
+      range.insertNode(tempElement);
+      range.setStartAfter(tempElement);
+      range.setEndAfter(tempElement);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      composeArea.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  } catch (error) {
+    console.error("Gmail Voice Dictation: Error inserting text:", error);
+  }
+
   console.log("Original Transcript:", transcript);
   transcript = transcript
     .replace(/\b(period|full stop)\b/gi, ".")
